@@ -39,13 +39,13 @@ BOOST_AUTO_TEST_CASE(Encoding1)
   };
 
   std::uint8_t buffer[] = {0x18, 0x01, 0x01, 0x19, 0x02, 0x0f, 0xa0, 0x1a, 0x05, 0x08, 0x03, 'n', 'd', 'n'};
-  tlv::bstring_view buf(buffer);
+  tlv::bstring_view buf(buffer, sizeof(buffer));
   const auto& [metainfo, wiresize] = MetaInfo::Parsable::Parse(buf);
   BOOST_CHECK_EQUAL(wiresize, sizeof(buffer));
   BOOST_CHECK(metainfo.has_value());
-  BOOST_CHECK_EQUAL(metainfo.value().contentType.value(), 0x01);
-  BOOST_CHECK_EQUAL(metainfo.value().freshnessPeriod.value(), 0x0fa0);
-  BOOST_CHECK(metainfo.value().finalBlockId.value() == tlv::bstring_view(buffer + 9, 5));
+  BOOST_CHECK_EQUAL(metainfo->contentType.value(), 0x01);
+  BOOST_CHECK_EQUAL(metainfo->freshnessPeriod.value(), 0x0fa0);
+  BOOST_CHECK(metainfo->finalBlockId.value() == tlv::bstring_view(buffer + 9, 5));
 }
 
 BOOST_AUTO_TEST_SUITE_END() // TestTlv

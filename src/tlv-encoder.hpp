@@ -35,6 +35,8 @@ concept ByteString =
     { wire[pos] } -> std::convertible_to<std::uint8_t>;
     { &wire[pos] } -> std::convertible_to<const std::uint8_t*>;
     { wire.substr(pos, count - pos) } -> std::convertible_to<T>;
+    { wire.begin() } -> std::convertible_to<const std::uint8_t*>;
+    { wire.end() } -> std::convertible_to<const std::uint8_t*>;
   };
 
 template<typename T, typename B>
@@ -189,7 +191,7 @@ struct BinString {
   template<ByteString B>
   static inline ParseResult<Vector> Parse(const B& wire) {
     // Require exact size
-    return {wire, wire.size()};
+    return {Vector{wire.begin(), wire.end()}, wire.size()};
   }
 };
 
@@ -223,17 +225,6 @@ struct NameComponentEncoder {
 // But they are fundamentally the same type.
 template<typename T, typename E>
 struct Sequence {
-  std::vector<E> encodables;
-  size_t length;
-  
-  inline Sequence(const std::vector<T>& values):length(0){
-    encodables.reserve(values.size());
-    for(const auto& v: values) {
-      encodables.push_back(Encodable(v));
-      length += encodables.back().EncodeSize();
-    }
-  }
-
   template<ByteString B>
   static inline ParseResult<std::vector<T>> Parse(const B& wire) REQUIRES_PARSES(T, E, B) {
     // This does a greedy parsing.
@@ -271,7 +262,7 @@ struct TlvBlock {
     }
     const auto& [value, vsiz] = E::Parse(wire.substr(pos, length.value()));
     pos += length.value();
-    if(!value){
+    if(!value.has_value()){
       return {std::nullopt, 0};
     }
     return {value, pos};
@@ -281,13 +272,6 @@ struct TlvBlock {
 // OptionalBlock is an optional TLV Block.
 template<uint64_t typeNum, typename T, typename E>
 struct OptionalBlock {
-  std::optional<E> encodable;
-  size_t length;
-  inline OptionalBlock(const std::optional<T>& value):encodable(value),length(0){
-    if(encodable.has_value()){
-      length = encodable.value().EncodeSize();
-    }
-  }
   template<ByteString B>
   static inline ParseResult<std::optional<T>> Parse(const B& wire) REQUIRES_PARSES(T, E, B) {
     const auto& [ret, len] = TlvBlock<typeNum, T, E>::Parse(wire);
@@ -322,9 +306,6 @@ struct Boolean {
 //   StructField<Model, Encodable, &Model::a>
 template<typename Model, typename E, auto offset>
 struct Field {
-  E encodable;
-  inline Field(const Model& model):encodable(model.*offset){}
-
   template<typename T>
   static inline void replace(Model& model, std::optional<T> value){
     if(value.has_value()){
@@ -412,11 +393,22 @@ using NaturalField = Field<Model, TlvBlock<typeNum, uint64_t, NaturalNumber>, of
 template<uint64_t typeNum, typename Model, std::optional<uint64_t> Model::* offset>
 using NaturalFieldOpt = Field<Model, OptionalBlock<typeNum, uint64_t, NaturalNumber>, offset>;
 
+template<uint64_t typeNum, typename Model, std::vector<uint64_t> Model::* offset>
+using NaturalFieldVec = Field<Model,
+                             Sequence<uint64_t, TlvBlock<typeNum, uint64_t, NaturalNumber>>,
+                             offset>;
+
 template<uint64_t typeNum, typename Model, typename Vector, Vector Model::* offset>
 using BytesField = Field<Model, TlvBlock<typeNum, Vector, BinString<Vector>>, offset>;
 
 template<uint64_t typeNum, typename Model, typename Vector, std::optional<Vector> Model::* offset>
 using BytesFieldOpt = Field<Model, OptionalBlock<typeNum, Vector, BinString<Vector>>, offset>;
+
+template<uint64_t typeNum, typename Model,
+         typename Vector, std::vector<Vector> Model::* offset>
+using BytesFieldVec = Field<Model,
+                            Sequence<Vector, TlvBlock<typeNum, Vector, BinString<Vector>>>,
+                            offset>;
 
 template<uint64_t typeNum, typename Model, bool Model::* offset>
 using BoolField = Field<Model, Boolean<typeNum>, offset>;
@@ -432,6 +424,12 @@ template<uint64_t typeNum, typename Model,
          typename StructType, std::optional<StructType> Model::* offset>
 using StructFieldOpt = Field<Model,
                              OptionalBlock<typeNum, StructType, typename StructType::Parsable>, offset>;
+
+template<uint64_t typeNum, typename Model,
+         typename StructType, std::vector<StructType> Model::* offset>
+using StructFieldVec = Field<Model,
+                             Sequence<StructType, TlvBlock<typeNum, StructType, typename StructType::Parsable>>,
+                             offset>;
 
 using EncodableName = Sequence<bstring_view, NameComponentEncoder>;
 
