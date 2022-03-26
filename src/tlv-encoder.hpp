@@ -35,8 +35,7 @@ concept ByteString =
     { wire[pos] } -> std::convertible_to<std::uint8_t>;
     { &wire[pos] } -> std::convertible_to<const std::uint8_t*>;
     { wire.substr(pos, count - pos) } -> std::convertible_to<T>;
-    { wire.begin() } -> std::convertible_to<const std::uint8_t*>;
-    { wire.end() } -> std::convertible_to<const std::uint8_t*>;
+    { wire.data() } -> std::convertible_to<const std::uint8_t*>;
   };
 
 template<typename T, typename B>
@@ -166,11 +165,11 @@ struct NaturalNumber {
     if (wire.size() == 1){
       return {uint64_t(wire[0]), 1};
     } else if (wire.size() == 2){
-      return {uint64_t(big_endian::Read<uint16_t>(wire.begin())), 2};
+      return {uint64_t(big_endian::Read<uint16_t>(wire.data())), 2};
     } else if (wire.size() == 4){
-      return {uint64_t(big_endian::Read<uint32_t>(wire.begin())), 4};
+      return {uint64_t(big_endian::Read<uint32_t>(wire.data())), 4};
     } else if (wire.size() == 8){
-      return {big_endian::Read<uint64_t>(wire.begin()), 8};
+      return {big_endian::Read<uint64_t>(wire.data()), 8};
     }
     return {std::nullopt, 0};
   }
@@ -191,7 +190,8 @@ struct BinString {
   template<ByteString B>
   static inline ParseResult<Vector> Parse(const B& wire) {
     // Require exact size
-    return {Vector{wire.begin(), wire.end()}, wire.size()};
+    return {Vector{reinterpret_cast<typename Vector::const_pointer>(wire.data()), wire.size()},
+            wire.size()};
   }
 };
 
