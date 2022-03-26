@@ -16,9 +16,9 @@ def configure(conf):
     errmsg = ''
     warnmsg = ''
     if cxx == 'gcc':
-        if ccver < (7, 4, 0):
+        if ccver < (11, 0, 0):
             errmsg = ('The version of gcc you are using is too old.\n'
-                      'The minimum supported gcc version is 7.4.')
+                      'The minimum supported gcc version is 11.0.')
         conf.flags = GccFlags()
     elif cxx == 'clang':
         if Utils.unversioned_sys_platform() == 'darwin':
