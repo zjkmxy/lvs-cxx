@@ -1,0 +1,10 @@
+prefix=@PREFIX@
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: liblvs-cxx
+Description: lvs-css library
+Version: @VERSION@
+Libs: -L${libdir} -llvs-cxx
+Cflags: -I${includedir}
+Requires: libndn-cxx >= 0.7.1

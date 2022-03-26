@@ -1,0 +1,15 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+top = '../'
+
+def build(bld):
+    tmpdir = 'UNIT_TESTS_TMPDIR="%s"' % bld.bldnode.make_node('tmp-files')
+
+    # unit test binary
+    bld.program(target=top + 'unit-tests',
+                name='unit-tests',
+                source=bld.path.ant_glob('**/*.cpp'),
+                use='lvs-cxx BOOST',
+                includes='.',
+                defines=[tmpdir],
+                install_path=None)
