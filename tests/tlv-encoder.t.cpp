@@ -2,7 +2,7 @@
 #include <cstddef>
 #include <optional>
 
-import tlv;
+#include "tlv-encoder.hpp"
 
 namespace tests {
 

@@ -1,7 +1,6 @@
 #include <boost-test.hpp>
-#include <coroutine>
 
-import generator;
+#include "generator.hpp"
 
 namespace tests {
 

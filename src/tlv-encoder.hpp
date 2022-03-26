@@ -1,4 +1,4 @@
-module;
+#pragma once
 
 #include <tuple>
 #include <optional>
@@ -15,9 +15,7 @@ module;
 #define WITH_CONCEPTS 0
 #endif
 
-export module tlv;
-
-export namespace tlv {
+namespace tlv {
 
 // The result of parsing. Theoretically, it should be Optional<Tuple<T, size_t>>.
 // This definition is for coding convenience.
@@ -54,11 +52,13 @@ concept Parses =
   };
 
 #define REQUIRES_PARSES(t, e, b) requires Parses<t, e, b>
+#define REQUIRES_PARSABLE(e, b) requires Parsable<e, b>
 #define INTEGRAL std::integral
 
 #else
 #define ByteString typename
 #define REQUIRES_PARSES(t, e, b)
+#define REQUIRES_PARSABLE(e, b)
 #define INTEGRAL typename
 #endif
 
@@ -343,7 +343,7 @@ struct Field {
   // The value is assigned to the specified model, so only length is returned
   // This template version handles std::optional
   template<ByteString B>
-  static inline std::optional<size_t> ParseField(const B& wire, Model& model) requires Parsable<E, B> {
+  static inline std::optional<size_t> ParseField(const B& wire, Model& model) REQUIRES_PARSABLE(E, B) {
     auto [val, len] = E::Parse(wire);
     if(val.has_value()){
       // Assign to the field if success

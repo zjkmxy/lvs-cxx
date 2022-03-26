@@ -1,17 +1,23 @@
-module;
+#pragma once
 
-#include <coroutine>
 #include <iostream>
 #include <string>
 #include <exception>
+#if defined(__GNUC__) && (__GNUC__ >= 10)
+#include <coroutine>
+#else
+#include <experimental/coroutine>
+#endif
 
-export module generator;
+namespace generator {
 
-export namespace generator {
-
+#if defined(__GNUC__) && (__GNUC__ >= 10)
 using std::coroutine_handle;
 using std::suspend_always;
-using std::suspend_never;
+#else
+using std::experimental::coroutine_handle;
+using std::experimental::suspend_always;
+#endif
 
 struct StopIteration: std::exception {
   StopIteration() = default;

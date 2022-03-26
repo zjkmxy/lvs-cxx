@@ -16,9 +16,9 @@ def configure(conf):
     errmsg = ''
     warnmsg = ''
     if cxx == 'gcc':
-        if ccver < (11, 0, 0):
+        if ccver < (9, 4, 0):
             errmsg = ('The version of gcc you are using is too old.\n'
-                      'The minimum supported gcc version is 11.0.')
+                      'The minimum supported gcc version is 9.4.')
         conf.flags = GccFlags()
     elif cxx == 'clang':
         if Utils.unversioned_sys_platform() == 'darwin':
@@ -136,7 +136,7 @@ class GccBasicFlags(CompilerFlags):
     """
     def getGeneralFlags(self, conf):
         flags = super(GccBasicFlags, self).getGeneralFlags(conf)
-        flags['CXXFLAGS'] += ['-std=c++20', '-fmodules-ts', '-fconcepts']
+        flags['CXXFLAGS'] += ['-std=c++20', '-fconcepts', '-fcoroutines-ts']
         if Utils.unversioned_sys_platform() == 'linux':
             flags['LINKFLAGS'] += ['-fuse-ld=gold']
         elif Utils.unversioned_sys_platform() == 'freebsd':
