@@ -64,27 +64,24 @@ private:
     data->setContent(reinterpret_cast<const uint8_t*>(content.data()), content.size());
 
     // in order for the consumer application to be able to validate the packet, you need to setup
-    // the following keys:
+    // the following keys via pyndnsec
     // 1. Generate example trust anchor
     //
-    //         ndnsec key-gen /example
-    //         ndnsec cert-dump -i /example > example-trust-anchor.cert
+    //         pyndnsec New-Item /example
+    //         pyndnsec Export-Cert /example > example-trust-anchor.cert
     //
     // 2. Create a key for the producer and sign it with the example trust anchor
     //
-    //         ndnsec key-gen /example/testApp
-    //         ndnsec sign-req /example/testApp | ndnsec cert-gen -s /example -i example | ndnsec cert-install -
+    //         pyndnsec New-Item /example/testApp
+    //         pyndnsec Get-SignReq /example/testApp | pyndnsec Sign-Cert -i example | pyndnsec Import-Cert
+    //
+    // The generated certificate's KeyLocator is trust anchor's CERTIFICATE name.
 
     // Sign Data packet with default identity
     auto default_cert = m_keyChain.getPib().getDefaultIdentity().getDefaultKey().getDefaultCertificate();
     m_keyChain.sign(*data, signingByCertificate(default_cert));
-    // m_keyChain.sign(*data, signingByIdentity(<identityName>));
-    // m_keyChain.sign(*data, signingByKey(<keyName>));
-    // m_keyChain.sign(*data, signingByCertificate(<certName>));
-    // m_keyChain.sign(*data, signingWithSha256());
 
     // Return Data packet to the requester
-    std::cout << "<< K: " << data->getKeyLocator()->getName() << std::endl;
     std::cout << "<< D: " << *data << std::endl;
     m_face.put(*data);
   }

@@ -41,6 +41,14 @@ public:
                                                  .getDefaultKey()
                                                  .getDefaultCertificate();
 
+    // lvs = r'''
+    // #root: /"example"
+    // #KEY: "KEY"/_/_/_
+    // #data: #root/author/_data/_version <= #author_key
+    // #author_key: #root/author/"KEY"/_
+    // #author_cert: #root/author/#KEY <= #anchor
+    // #anchor: #root/#KEY
+    // '''
     const uint8_t trust_schema[] = {
       0x40, 0x04, 0x00, 0x01, 0x00, 0x00, 0x03, 0x01, 0x00, 0x43, 0x01, 0x01, 0x41, 0x1F, 0x03, 0x01,
       0x00, 0x31, 0x0E, 0x03, 0x01, 0x01, 0x01, 0x09, 0x08, 0x07, 0x65, 0x78, 0x61, 0x6D, 0x70, 0x6C,
@@ -133,7 +141,7 @@ private:
 };
 
 } // namespace examples
-} // namespace ndn
+} // namespace lvs
 
 int
 main(int argc, char** argv)
