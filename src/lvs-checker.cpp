@@ -1,5 +1,4 @@
 #include "lvs-checker.hpp"
-#include <coroutine>
 
 namespace lvs {
 
