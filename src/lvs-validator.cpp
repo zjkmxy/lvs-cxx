@@ -6,16 +6,24 @@
 
 namespace lvs {
 
+using tlv::bstring_view;
 using namespace std;
 using namespace ndn;
 
 NDN_LOG_INIT(lvs.Validator);
 
-Validator::Validator(std::unique_ptr<Checker> checker,
+Validator::Validator(const bstring_view& binary_lvs,
                      ndn::Face& face,
                      const ndn::security::Certificate& trust_anchor):
-  m_checker(std::move(checker)), m_face(face), m_anchor(trust_anchor)
-{}
+  m_binary_lvs(binary_lvs.begin(), binary_lvs.end()),
+  m_checker(nullptr), m_face(face), m_anchor(trust_anchor)
+{
+  auto model = lvs::LvsModel::Parse(bstring_view(m_binary_lvs.data(), m_binary_lvs.size()));
+  if(!model.has_value()) {
+    throw lvs::LvsModelError("Failed to parse LVS trust schema");
+  }
+  m_checker = std::unique_ptr<lvs::Checker>(new lvs::Checker(*model, {}));
+}
 
 void
 Validator::validate(const ndn::Data& data,
@@ -28,7 +36,7 @@ Validator::validate(const ndn::Data& data,
     return failureCb(data, ndn::security::ValidationError::Code::NO_SIGNATURE);
   }
   if(!m_checker->check(data.getName(), keyLocator->getName())){
-    NDN_LOG_ERROR(data.getName() << " does not match " << keyLocator->getName());
+    NDN_LOG_INFO("LVS check failed: " << data.getName() << " does not match " << keyLocator->getName());
     return failureCb(data, ndn::security::ValidationError::Code::POLICY_ERROR);
   }
 
@@ -43,7 +51,7 @@ Validator::validate(const ndn::Data& data,
     // Fetch certificate
     ndn::Interest interest(keyLocator->getName());
     interest.setMustBeFresh(true);
-    interest.setCanBePrefix(false);
+    interest.setCanBePrefix(true);
 
     m_face.expressInterest(interest,
       [=, this](const Interest&, const Data& certData){

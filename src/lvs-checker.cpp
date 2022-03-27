@@ -84,6 +84,7 @@ Checker::match(const ndn::Name& name, const Checker::Context& context) {
     bool backtrack = false;
     if(depth == name.size()) {
       co_yield {*cur, &con};
+      backtrack = true;
     } else {
       // Make movements
       if(edge_index < 0){
@@ -125,20 +126,20 @@ Checker::match(const ndn::Name& name, const Checker::Context& context) {
       } else {
         backtrack = true;
       }
-      if(backtrack){
-        if(!edge_indices.empty()) {
-          edge_index = edge_indices.back();
-          edge_indices.pop_back();
-        }
-        if(!matches.empty()) {
-          auto last_tag = matches.back();
-          matches.pop_back();
-          if(last_tag >= 0) {
-            con[last_tag] = std::nullopt;
-          }
-        }
-        cur = node.parent;
+    }
+    if(backtrack){
+      if(!edge_indices.empty()) {
+        edge_index = edge_indices.back();
+        edge_indices.pop_back();
       }
+      if(!matches.empty()) {
+        auto last_tag = matches.back();
+        matches.pop_back();
+        if(last_tag >= 0) {
+          con[last_tag] = std::nullopt;
+        }
+      }
+      cur = node.parent;
     }
   }
   co_return;

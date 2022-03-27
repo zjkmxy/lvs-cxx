@@ -10,7 +10,7 @@ namespace lvs {
 
 class Validator: public ndn::security::CertificateStorage {
 public:
-  Validator(std::unique_ptr<Checker> checker,
+  Validator(const tlv::bstring_view& binary_lvs,
             ndn::Face& face,
             const ndn::security::Certificate& trust_anchor);
 
@@ -22,6 +22,7 @@ public:
            const ndn::security::DataValidationFailureCallback& failureCb);
 
 private:
+  std::vector<uint8_t> m_binary_lvs;
   std::unique_ptr<Checker> m_checker;
   ndn::Face& m_face;
   ndn::security::Certificate m_anchor;
