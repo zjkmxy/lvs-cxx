@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <exception>
+#include <optional>
 #if defined(__GNUC__) && (__GNUC__ >= 10)
 #include <coroutine>
 #else
@@ -36,24 +37,22 @@ struct Generator {
     auto final_suspend() noexcept { return suspend_always(); }
     auto yield_value(T value) {
       yielded_value = value;
-      terminated = false;
       return suspend_always();
     }
     void return_void() {
-      terminated = true;
+      yielded_value = std::nullopt;
     }
     void unhandled_exception() {}
-    T yielded_value;
-    bool terminated;
+    std::optional<T> yielded_value;
   };
 
   T next() {
     handle.resume();
     const auto& promise = handle.promise();
-    if (promise.terminated) {
+    if (!promise.yielded_value.has_value()) {
       throw StopIteration{};
     }else{
-      return promise.yielded_value;
+      return promise.yielded_value.value();
     }
   }
   coroutine_handle<promise_type> handle;

@@ -41,11 +41,11 @@ struct UserFnArg {
 
 struct UserFnCall {
   std::string fn_id;
-  UserFnArg args;
+  std::vector<UserFnArg> args;
 
   using Parsable = tlv::Struct<UserFnCall,
     tlv::BytesField<type::USER_FN_ID, UserFnCall, decltype(fn_id), &UserFnCall::fn_id>,
-    tlv::StructField<type::FN_ARGS, UserFnCall, UserFnArg, &UserFnCall::args>>;
+    tlv::StructFieldVec<type::FN_ARGS, UserFnCall, UserFnArg, &UserFnCall::args>>;
 };
 
 struct ConstraintOption {
