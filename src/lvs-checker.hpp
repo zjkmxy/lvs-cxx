@@ -8,11 +8,18 @@
 #include <ndn-cxx/name.hpp>
 #include "tlv-encoder.hpp"
 #include "lvs-binary.hpp"
-#include "generator.hpp"
 
 namespace lvs {
 
 using UserFn = std::function<bool(ndn::Name::Component, const std::vector<ndn::Name::Component>&)>;
+
+struct StopIteration: std::exception {
+  StopIteration() = default;
+  ~StopIteration() override {}
+};
+
+template<typename T>
+using Generator = std::function<T()>;
 
 struct LvsModelError: std::exception {
   std::string msg;
@@ -47,11 +54,11 @@ private:
                         const Context& context,
                         const std::vector<PatternConstraint>& cons_sets);
 
-  generator::Generator<std::tuple<uint64_t, const Context*>>
+  Generator<std::tuple<uint64_t, const Context*>>
   match(const ndn::Name& name, const Context& context);
 
 public:
-  generator::Generator<std::tuple<const std::vector<std::string>*, std::map<std::string, ndn::Name::Component>>>
+  Generator<std::tuple<const std::vector<std::string>*, std::map<std::string, ndn::Name::Component>>>
   match(const ndn::Name& name);
 
   bool check(const ndn::Name& pkt_name, const ndn::Name& key_name);

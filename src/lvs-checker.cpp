@@ -3,8 +3,6 @@
 namespace lvs {
 
 using ndn::Name;
-using generator::Generator;
-using generator::StopIteration;
 
 std::map<std::string, Name::Component> Checker::ContextToName(const Checker::Context& context)
 {
@@ -37,7 +35,8 @@ bool Checker::CheckConstraints(Name::Component value,
       } else {
         assert(option.fn.has_value());  // Sanity checked
         auto fn_id = option.fn->fn_id;
-        if(!user_fns.contains(fn_id)){
+        auto fn = user_fns.find(fn_id);
+        if(fn == user_fns.end()) {
           throw LvsModelError("User function " + fn_id + " is undefined");
         }
         auto arg_list = std::vector<Name::Component>();
@@ -55,7 +54,7 @@ bool Checker::CheckConstraints(Name::Component value,
             }
           }
         }
-        if(user_fns[fn_id](value, arg_list)) {
+        if(fn->second(value, arg_list)) {
           satisfied = true;
           break;
         }
@@ -78,14 +77,35 @@ Checker::match(const ndn::Name& name, const Checker::Context& context) {
     con.resize(model.named_pattern_cnt + 1, std::nullopt);
   }
   auto matches = std::vector<int>();
-  while(cur.has_value()){
-    auto depth = edge_indices.size();
-    auto&& node = model.nodes[*cur];
-    bool backtrack = false;
-    if(depth == name.size()) {
-      co_yield {*cur, &con};
-      backtrack = true;
-    } else {
+  bool backtrack = false;
+  auto&& node = model.nodes[*cur];
+  return [=]() mutable -> std::tuple<uint64_t, const Checker::Context*> {
+    while(true){
+      if(backtrack){
+        if(!edge_indices.empty()) {
+          edge_index = edge_indices.back();
+          edge_indices.pop_back();
+        }
+        if(!matches.empty()) {
+          auto last_tag = matches.back();
+          matches.pop_back();
+          if(last_tag >= 0) {
+            con[last_tag] = std::nullopt;
+          }
+        }
+        cur = node.parent;
+      }
+      // Start of the loop
+      backtrack = false;
+      if(!cur.has_value()){
+        throw StopIteration();
+      }
+      auto depth = edge_indices.size();
+      node = model.nodes[*cur];
+      if(depth == name.size()) {
+        backtrack = true;
+        return {*cur, &con};
+      }
       // Make movements
       if(edge_index < 0){
         // Value edge: since it matches at most once, ignore edge_index
@@ -127,35 +147,19 @@ Checker::match(const ndn::Name& name, const Checker::Context& context) {
         backtrack = true;
       }
     }
-    if(backtrack){
-      if(!edge_indices.empty()) {
-        edge_index = edge_indices.back();
-        edge_indices.pop_back();
-      }
-      if(!matches.empty()) {
-        auto last_tag = matches.back();
-        matches.pop_back();
-        if(last_tag >= 0) {
-          con[last_tag] = std::nullopt;
-        }
-      }
-      cur = node.parent;
-    }
-  }
-  co_return;
+  };
 }
 
 Generator<std::tuple<const std::vector<std::string>*, std::map<std::string, Name::Component>>>
 Checker::match(const ndn::Name& name)
 {
   auto matcher = match(name, {});
-  while(true){
-    auto [node_id, contest_ptr] = matcher.next();
+  return [=]() mutable -> std::tuple<const std::vector<std::string>*, std::map<std::string, Name::Component>> {
+    auto [node_id, contest_ptr] = matcher();
     const Context& context = *contest_ptr;
     auto&& node = model.nodes[node_id];
-    co_yield {&node.rule_name, ContextToName(context)};
-  }
-  co_return;
+    return {&node.rule_name, ContextToName(context)};
+  };
 }
 
 bool Checker::check(const ndn::Name& pkt_name, const ndn::Name& key_name)
@@ -163,13 +167,13 @@ bool Checker::check(const ndn::Name& pkt_name, const ndn::Name& key_name)
   auto pkt_matcher = match(pkt_name, {});
   try{
     while(true){
-      auto [node_id, contest_ptr] = pkt_matcher.next();
+      auto [node_id, contest_ptr] = pkt_matcher();
       auto&& pkt_node = model.nodes[node_id];
       const Context& context = *contest_ptr;
       auto key_matcher = match(key_name, context);
       try{
         while(true){
-          auto [node_id, contest_ptr] = key_matcher.next();
+          auto [node_id, contest_ptr] = key_matcher();
           for(auto sig_node: pkt_node.sign_cons) {
             if(sig_node == node_id) {
               return true;

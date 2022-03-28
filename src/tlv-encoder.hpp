@@ -77,7 +77,7 @@ namespace big_endian {
   template<>
   inline uint16_t Read<uint16_t>(const std::uint8_t buf[]){
     // std::byteswap is C++23
-    if constexpr (std::endian::native == std::endian::little) {
+    if constexpr (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) {
       return __builtin_bswap16(*reinterpret_cast<const uint16_t*>(buf));
     } else {
       return *reinterpret_cast<const uint16_t*>(buf);
@@ -86,7 +86,7 @@ namespace big_endian {
 
   template<>
   inline uint32_t Read<uint32_t>(const std::uint8_t buf[]){
-    if constexpr (std::endian::native == std::endian::little) {
+    if constexpr (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) {
       return __builtin_bswap32(*reinterpret_cast<const uint32_t*>(buf));
     } else {
       return *reinterpret_cast<const uint32_t*>(buf);
@@ -95,7 +95,7 @@ namespace big_endian {
 
   template<>
   inline uint64_t Read<uint64_t>(const std::uint8_t buf[]){
-    if constexpr (std::endian::native == std::endian::little) {
+    if constexpr (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) {
       return __builtin_bswap64(*reinterpret_cast<const uint64_t*>(buf));
     } else {
       return *reinterpret_cast<const uint64_t*>(buf);
